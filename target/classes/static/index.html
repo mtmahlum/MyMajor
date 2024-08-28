@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyMajor</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            let selectedCourses = [];
+            let selectedSchools = [];
+
+  $('#courseSearch').on('input', function() {
+    let query = $(this).val();
+    if (query.length > 2) {
+        $.ajax({
+            url: '/api/search',
+            method: 'GET',
+            data: { query: query },
+            success: function(data) {
+                let resultHtml = '<ul>';
+                data.forEach(function(course) {
+                    resultHtml += `<li onclick="selectCourse('${course}')" title="Click to add">${course}</li>`;
+                });
+                resultHtml += '</ul>';
+                $('#searchResults').html(resultHtml);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("AJAX error: " + textStatus + ' : ' + errorThrown);
+                $('#searchResults').html('<p>Error fetching results. Please try again.</p>');
+            }
+        });
+    } else {
+        $('#searchResults').html('');
+    }
+});
+
+            // Function to select a course
+            window.selectCourse = function(course) {
+                if (!selectedCourses.includes(course)) {
+                    selectedCourses.push(course);
+                    updateSelectedCourses();
+                }
+            }
+
+            // Update selected courses display
+            function updateSelectedCourses() {
+		let coursesHtml = '<h4>Courses You\'ve Selected:</h4>';
+                coursesHtml += selectedCourses.map(course => `<span>${course} <button onclick="removeCourse('${course}')">X</button></span>`).join('');
+                $('#selectedCourses').html(coursesHtml);
+            }
+
+            // Remove a course
+            window.removeCourse = function(course) {
+                selectedCourses = selectedCourses.filter(c => c !== course);
+                updateSelectedCourses();
+            }
+
+// School selection
+$('.school-checkbox').change(function() {
+    let school = $(this).val();
+    if (this.checked) {
+        selectedSchools.push(school);
+    } else {
+        selectedSchools = selectedSchools.filter(s => s !== school);
+    }
+    console.log("Selected schools:", selectedSchools); // For debugging
+});
+
+
+    $('#submitButton').click(function() {
+        let requestData = {
+            completedCourses: selectedCourses,
+            schoolsOfInterest: selectedSchools
+        };
+
+        $.ajax({
+            url: '/api/recommend',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                displayResults(response);
+            },
+            error: function(xhr, status, error) {
+                console.error("Error occurred: " + error);
+                alert("An error occurred while fetching recommendations. Please try again.");
+            }
+        });
+    });
+
+function displayResults(data) {
+    let majorsHtml = data.majors.map(major => 
+        `<li><a href="${major.url}" target="_blank">${major.name}</a><br>
+	&nbsp;&nbsp;&nbsp;&nbsp;- Applicable Credits: ${major.score}</li>`
+    ).join('');
+    $('#majorsList').html(majorsHtml);
+
+    let certificatesHtml = data.certificates.map(cert => 
+        `<li><a href="${cert.url}" target="_blank">${cert.name}</a><br>
+	&nbsp;&nbsp;&nbsp;&nbsp;- Applicable Credits: ${cert.score}</li>`
+    ).join('');
+    $('#certificatesList').html(certificatesHtml);
+
+    $('#results-container').show();
+}
+});
+    </script>
+</head>
+<body>
+    <div id="header" class="section">
+        <div>
+	    <span class="image avatar"><img src="/images/avatar.png" alt="" /></span>
+            <h1 id="logo">MyMajor</h1>
+            <p class="tagline">Made by a student, for students</p>
+        </div>
+        <nav id = "nav">
+            <ul>
+                <li><a href="#one" class="active">About</a></li>
+                <li><a href="#two">Find Your Majors & Certificates</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div id="wrapper">
+        <div id="main">
+            <section id="one" class="section">
+                <div class="image main" data-position="center">
+                    <img src="/images/banner.jpg" alt="">
+                </div>
+                <div class="container">
+                    <header class="major">
+                        <h2>MyMajor</h2>
+                        <p>A simple webpage for finding YOUR academic path.</p>
+                    </header>
+                    <p>MyMajor is a tool designed to help students at the University of Wisconsin-Madison find the majors and certificates they are closest to achieving within schools of interest. College is an investment, and students deserve comprehensive information about how their interests align with the degrees they are closest to earning. It should be noted that this tool does not account for all general education requirements, instead, it considers explicit requirements by majors and certificates.<br><br>
+Below students may search and enter the courses for which they have credit, are taking, or plan to take.</p>
+                </div>
+            </section>
+
+<section id="two" class="section">
+    <div class="container">
+        <h3>Find Your Majors & Certificates</h3>
+        <p>Use the search bar below to find courses you have credit for and select your schools of interest to find majors and certificates.</p>
+        <p class="search-instruction">Search for courses and click on a result to add it</p>
+        <input type="text" id="courseSearch" placeholder="Search for courses">
+        <div id="searchResults"></div>
+        
+        <div id="selectedCourses">
+            <h4>Courses You've Selected:</h4>
+        </div>
+        
+<div class="school-selection">
+    <h4>Select Schools of Interest:</h4>
+    <input type="checkbox" id="school1" class="school-checkbox" value="College of Agricultural and Life Sciences">
+    <label for="school1"> College of Agricultural and Life Sciences</label><br>
+    
+    <input type="checkbox" id="school2" class="school-checkbox" value="College of Engineering">
+    <label for="school2"> College of Engineering</label><br>
+    
+    <input type="checkbox" id="school3" class="school-checkbox" value="College of Letters & Science">
+    <label for="school3"> College of Letters & Science</label><br>
+    
+    <input type="checkbox" id="school4" class="school-checkbox" value="Gaylord Nelson Institute for Environmental Studies">
+    <label for="school4"> Gaylord Nelson Institute for Environmental Studies</label><br>
+    
+    <input type="checkbox" id="school5" class="school-checkbox" value="School of Business">
+    <label for="school5"> School of Business</label><br>
+    
+    <input type="checkbox" id="school6" class="school-checkbox" value="School of Education">
+    <label for="school6"> School of Education</label><br>
+    
+    <input type="checkbox" id="school7" class="school-checkbox" value="School of Human Ecology">
+    <label for="school7"> School of Human Ecology</label><br>
+    
+    <input type="checkbox" id="school8" class="school-checkbox" value="School of Nursing">
+    <label for="school8"> School of Nursing</label><br>
+    
+    <input type="checkbox" id="school9" class="school-checkbox" value="School of Pharmacy">
+    <label for="school9"> School of Pharmacy</label><br>
+</div>        
+        <button id="submitButton">Submit</button>
+        
+        <div id="results-container">
+            <div id="majors">
+                <h4 id="ranked-majors-header">Ranked Majors</h4>
+                <ul id="majorsList"></ul>
+            </div>
+            <div id="certificates">
+                <h4 id="ranked-certifs-header">Ranked Certificates</h4>
+                <ul id="certificatesList"></ul>
+            </div>
+        </div>
+    </div>
+</section>            
+
+</div>
+
+        <footer id="footer" class="section">
+            <div class="container">
+		<p id="visitor-count"></p>
+                <p>&copy; 2024 Mitchell Mahlum. All Rights Reserved.</p>
+            </div>
+        </footer>
+    </div>
+		<script src="assets/js/jquery.min.js"></script>
+		<script src="assets/js/jquery.scrollex.min.js"></script>
+		<script src="assets/js/jquery.scrolly.min.js"></script>
+		<script src="assets/js/browser.min.js"></script>
+		<script src="assets/js/breakpoints.min.js"></script>
+		<script src="assets/js/util.js"></script>
+		<script src="assets/js/main.js"></script>
+		<script>
+    			fetch('/visitorCount')
+        			.then(response => response.text())
+        			.then(count => {
+            				const visitorCountElement = document.getElementById('visitor-count');
+            				visitorCountElement.textContent = `Number of MyMajor Webpage Visitors: ${count}`;
+        			})
+        			.catch(error => {
+            				console.error('Error fetching visitor count:', error);
+            				const visitorCountElement = document.getElementById('visitor-count');
+            				visitorCountElement.textContent = 'Visitor count unavailable';
+        			});
+		</script>
+</body>
+</html>
